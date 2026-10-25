@@ -1,9 +1,9 @@
-"""Record every spoken phrase with a neural voice and embed it in happy-farm.html.
+"""Record every spoken phrase with a neural voice and embed it in index.html.
 Run from the project folder: python tools/make_voice.py [--voice en-US-JennyNeural] [--rate=-10%]"""
 import argparse, asyncio, base64, json, os, re, sys, tempfile
 import edge_tts
 
-# keep in sync with allPhrases() in happy-farm.html (the self-test catches drift)
+# keep in sync with allPhrases() in index.html (the self-test catches drift)
 PHRASES = [
     "Hello Elaina!", "Let's play!", "Animals", "Bubbles", "Shapes",
     "Cow. Moooo!", "Pig. Oink oink!", "Duck. Quack!", "Sheep. Baaa!", "Cat. Meow!", "Dog. Woof woof!",
@@ -20,9 +20,9 @@ async def main():
     ap.add_argument("--voice", default="en-US-JennyNeural")
     ap.add_argument("--rate", default="-10%")
     a = ap.parse_args()
-    html = open("happy-farm.html", encoding="utf-8").read()
+    html = open("index.html", encoding="utf-8").read()
     if BEGIN not in html or END not in html:
-        sys.exit("markers not found in happy-farm.html")
+        sys.exit("markers not found in index.html")
     clips = {}
     with tempfile.TemporaryDirectory() as d:
         for t in PHRASES:
@@ -32,7 +32,7 @@ async def main():
     line = "const VOICE_CLIPS = " + json.dumps(clips, ensure_ascii=False) + ";"
     i, j = html.index(BEGIN) + len(BEGIN), html.index(END)
     html = html[:i] + "\n" + line + "\n" + html[j:]
-    open("happy-farm.html", "w", encoding="utf-8", newline="").write(html)
-    print(f"{len(clips)} clips, happy-farm.html is {os.path.getsize('happy-farm.html')} bytes")
+    open("index.html", "w", encoding="utf-8", newline="").write(html)
+    print(f"{len(clips)} clips, index.html is {os.path.getsize('index.html')} bytes")
 
 asyncio.run(main())
