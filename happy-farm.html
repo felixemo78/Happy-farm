@@ -357,7 +357,7 @@ function goFullLandscape(){
   if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).then(lock, () => {}); else lock();
   getWake();
 }
-document.addEventListener('visibilitychange', () => { if(COARSE && !document.hidden && scene === Start) getWake(); });
+document.addEventListener('visibilitychange', () => { if(COARSE && !document.hidden && scene !== Start) getWake(); });
 function drawRotateHint(){
   drawSoftBg('#bfe8fb', '#e8f7ff');
   const s = Math.min(W,H)*0.3;
