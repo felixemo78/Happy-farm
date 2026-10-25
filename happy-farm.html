@@ -22,7 +22,7 @@
    HAPPY FARM  —  a tap-toy for ~3 year olds
    Single file. No internet, no assets, no ads, no data collection.
    >>> CHANGE THE NAME HERE <<< */
-const KID_NAME = "";   // e.g. "Mia"  (leave "" to use no name)
+const KID_NAME = "Elaina";   // e.g. "Mia"  (leave "" to use no name)
 /* ========================================================================== */
 
 const canvas = document.getElementById('c');
@@ -82,15 +82,29 @@ function voiceTone(o){
   osc.start(t0); osc.stop(t0 + dur + 0.05);
 }
 
-function speak(text){
+// best English device voice: natural/neural > enhanced > google > known-good names; ties keep list order
+function pickVoice(voices){
+  let best = null, top = -1;
+  for(const v of voices){
+    if(!/^en/i.test(v.lang)) continue;
+    const sc = (/natural|neural|online/i.test(v.name)?4:0) + (/enhanced|premium/i.test(v.name)?3:0)
+             + (/google/i.test(v.name)?2:0) + (/jenny|aria|samantha|karen|moira|zira/i.test(v.name)?1:0);
+    if(sc > top){ top = sc; best = v; }
+  }
+  return best;
+}
+try{ speechSynthesis.getVoices(); }catch(e){}   // Chrome loads voices late; warm the list
+function speakTTS(text){
   if(!VOICE || !text) return;
   try{
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.85; u.pitch = 1.35; u.volume = 1;
+    u.voice = pickVoice(speechSynthesis.getVoices()); u.lang = 'en-US';
+    u.rate = 0.9; u.pitch = 1.05; u.volume = 1;
     window.speechSynthesis.speak(u);
   }catch(e){}
 }
+function speak(text){ speakTTS(text); }   // Task 2 replaces
 
 const SFX = {
   pop(){ voiceTone({freq:900, to:200, dur:0.14, type:'sine', vol:0.35}); },
@@ -688,6 +702,30 @@ function frame(now){
   if(fade > 0){ fade -= dt*2.2; ctx.fillStyle = `rgba(255,255,255,${Math.max(0,fade)})`; ctx.fillRect(0,0,W,H); }
   requestAnimationFrame(frame);
 }
+
+// ---- self-tests: open happy-farm.html?selftest ----
+const _tests = [];
+function check(name, fn){ _tests.push([name, fn]); }
+check('prefers natural voices', () => pickVoice([
+  {name:'Microsoft David - English (United States)', lang:'en-US'},
+  {name:'Microsoft Jenny Online (Natural) - English (United States)', lang:'en-US'},
+  {name:'Google Deutsch', lang:'de-DE'}
+]).name.includes('Jenny'));
+check('ignores non-English voices', () => pickVoice([{name:'Google Deutsch', lang:'de-DE'}]) === null);
+check('iOS enhanced beats compact', () => pickVoice([
+  {name:'Samantha', lang:'en-US'}, {name:'Samantha (Enhanced)', lang:'en-US'}
+]).name === 'Samantha (Enhanced)');
+check('name is Elaina', () => KID_NAME === 'Elaina');
+
+if(location.search.includes('selftest')) addEventListener('load', async () => {
+  let bad = 0;
+  for(const [n, fn] of _tests){
+    let ok = false;
+    try{ ok = await fn(); }catch(e){}
+    if(!ok){ bad++; console.log('FAIL ' + n); }
+  }
+  console.log(bad ? 'SELFTEST ' + bad + ' FAILED' : 'SELFTEST PASS ' + _tests.length);
+});
 requestAnimationFrame(frame);
 </script>
 </body>
