@@ -53,7 +53,7 @@ function audioInit(){
       master.gain.value = 0.55;
       master.connect(AC.destination);
     }
-    if(AC.state === 'suspended') AC.resume();
+    if(AC.state !== 'running') AC.resume();   // also 'interrupted' (iOS after lock/call)
   }catch(e){ /* silent */ }
 }
 
@@ -120,16 +120,19 @@ function speak(text){
   stopVoice();
   const clip = VOICE_CLIPS[text], gen = voiceGen;
   if(!clip || !AC) return speakTTS(text);
-  if(!clipBufs[text]){
-    const b = atob(clip), a = new Uint8Array(b.length);
-    for(let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
-    clipBufs[text] = AC.decodeAudioData(a.buffer);
-  }
-  clipBufs[text].then(buf => {
-    if(gen !== voiceGen) return;   // a newer word was tapped meanwhile
-    voiceSrc = AC.createBufferSource(); voiceSrc.buffer = buf; voiceSrc._phrase = text;
-    voiceSrc.connect(AC.destination); voiceSrc.start();
-  }, () => { if(gen === voiceGen) speakTTS(text); });
+  const fail = () => { if(gen === voiceGen) speakTTS(text); };
+  try{
+    if(!clipBufs[text]){
+      const b = atob(clip), a = new Uint8Array(b.length);
+      for(let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+      clipBufs[text] = new Promise((ok, err) => AC.decodeAudioData(a.buffer, ok, err));   // callback form: old Safari returns no promise
+    }
+    clipBufs[text].then(buf => {
+      if(gen !== voiceGen) return;   // a newer word was tapped meanwhile
+      voiceSrc = AC.createBufferSource(); voiceSrc.buffer = buf; voiceSrc._phrase = text;
+      voiceSrc.connect(AC.destination); voiceSrc.start();
+    }).catch(fail);
+  }catch(e){ fail(); }
 }
 function allPhrases(){
   return ['Hello ' + KID_NAME + '!', "Let's play!", 'Animals', 'Bubbles', 'Shapes',
@@ -349,12 +352,12 @@ function layoutHud(){ const r = Math.max(34, Math.min(W,H)*0.072); homeBtn = {x:
 const COARSE = matchMedia('(pointer: coarse)').matches;
 const needsRotate = (w, h, coarse) => coarse && h > w && Math.min(w, h) < 600;
 let wake = null;
-function getWake(){ if(navigator.wakeLock) navigator.wakeLock.request('screen').then(l => wake = l, () => {}); }
+function getWake(){ if(navigator.wakeLock && !(wake && !wake.released)) navigator.wakeLock.request('screen').then(l => wake = l, () => {}); }
 function goFullLandscape(){
   if(!COARSE) return;
   const el = document.documentElement;
   const lock = () => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {});
-  if(el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).then(lock, () => {}); else lock();
+  try{ const f = el.requestFullscreen && el.requestFullscreen({navigationUI:'hide'}); if(f && f.then) f.then(lock, () => {}); else lock(); }catch(e){}
   getWake();
 }
 document.addEventListener('visibilitychange', () => { if(COARSE && !document.hidden && scene !== Start) getWake(); });
@@ -408,7 +411,7 @@ const Start = {
     ctx.closePath(); fillStroke(C.white, C.ink, 5);
     ctx.restore();
   },
-  down(){ goFullLandscape(); audioInit(); SFX.chime(); speak(KID_NAME ? "Hello " + KID_NAME + "!" : "Let's play!"); go('menu'); },
+  down(){ audioInit(); SFX.chime(); speak(KID_NAME ? "Hello " + KID_NAME + "!" : "Let's play!"); go('menu'); try{ goFullLandscape(); }catch(e){} },
   move(){}, up(){}
 };
 
@@ -727,6 +730,7 @@ let down = false;
 function cancelDrag(){ down = false; const p = Shapes.drag; if(p){ Shapes.drag = null; p.x = p.hx; p.y = p.hy; } }  // rotate mid-drag: piece floats home
 canvas.addEventListener('pointerdown', e=>{
   e.preventDefault(); if(needsRotate(W, H, COARSE)) return; audioInit(); down = true;
+  if(COARSE && scene !== Start && !document.fullscreenElement) try{ goFullLandscape(); }catch(e){}   // regain fullscreen after back swipe / app switch
   canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
   const p = pt(e); scene.down && scene.down(p.x, p.y);
 }, {passive:false});
@@ -801,6 +805,13 @@ check('fast taps keep only the newest word', async () => {
   audioInit(); speak('Red'); speak('Blue'); speak('Green');
   await new Promise(r => setTimeout(r, 400));
   return voiceSrc && voiceSrc._phrase === 'Green';
+});
+
+check('old engines cannot strand the Start screen', () => {
+  const ad = AC.decodeAudioData, was = scene;
+  AC.decodeAudioData = (b, ok, err) => { err && err(new Error('x')); };   // callback-only, returns undefined
+  try{ scene = Start; Start.down(0, 0); return scene === Menu; }
+  finally{ AC.decodeAudioData = ad; scene = was; }
 });
 
 check('phone portrait asks to rotate', () => needsRotate(390, 844, true) === true);
