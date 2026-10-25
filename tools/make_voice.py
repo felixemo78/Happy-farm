@@ -9,9 +9,11 @@ PHRASES = [
     "Cow. Moooo!", "Pig. Oink oink!", "Duck. Quack!", "Sheep. Baaa!", "Cat. Meow!", "Dog. Woof woof!",
     "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink",
     "Yay! Good job!",
-    "Circle", "Square", "Triangle", "Star", "Heart",
+    "Circle", "Square", "Triangle", "Star", "Heart", "Oval", "Diamond", "Rectangle",
     "Circle! Well done!", "Square! Well done!", "Triangle! Well done!", "Star! Well done!", "Heart! Well done!",
-    "Hooray Elaina!", "Hooray!",
+    "Oval! Well done!", "Diamond! Well done!", "Rectangle! Well done!",
+    "Hooray Elaina!", "Great job!", "You did it!", "Wow, super!", "Yay Elaina!", "Good job Elaina!", "Amazing!",
+    "Hooray!",
 ]
 BEGIN, END = "/* VOICE-CLIPS:BEGIN */", "/* VOICE-CLIPS:END */"
 
