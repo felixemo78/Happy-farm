@@ -366,10 +366,12 @@ function drawRotateHint(){
   rr(-s*0.24, -s*0.4, s*0.48, s*0.72, s*0.04); fill(C.green);
   ctx.restore();
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  const fs = W*0.11;
-  ctx.font = `bold ${fs}px 'Comic Sans MS','Trebuchet MS',sans-serif`;
+  const msg = 'Turn me sideways!', face = "'Comic Sans MS','Trebuchet MS',sans-serif";
+  ctx.font = `bold 100px ${face}`;
+  const fs = Math.min(W*0.11, W*0.9*100/(ctx.measureText(msg).width + 16));  // text + outline <= 0.9 W
+  ctx.font = `bold ${fs}px ${face}`;
   ctx.lineWidth = fs*0.16; ctx.strokeStyle = C.ink; ctx.lineJoin='round';
-  ctx.strokeText('Turn me sideways!', W/2, H*0.75); ctx.fillStyle = C.white; ctx.fillText('Turn me sideways!', W/2, H*0.75);
+  ctx.strokeText(msg, W/2, H*0.75); ctx.fillStyle = C.white; ctx.fillText(msg, W/2, H*0.75);
 }
 
 function drawHome(){
@@ -722,6 +724,7 @@ function pt(e){
   return { x: t.clientX, y: t.clientY };
 }
 let down = false;
+function cancelDrag(){ down = false; const p = Shapes.drag; if(p){ Shapes.drag = null; p.x = p.hx; p.y = p.hy; } }  // rotate mid-drag: piece floats home
 canvas.addEventListener('pointerdown', e=>{
   e.preventDefault(); if(needsRotate(W, H, COARSE)) return; audioInit(); down = true;
   canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
@@ -759,7 +762,7 @@ let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now; T += dt;
   ctx.clearRect(0,0,W,H);
-  if(needsRotate(W, H, COARSE)) drawRotateHint();
+  if(needsRotate(W, H, COARSE)){ cancelDrag(); drawRotateHint(); }
   else {
     scene.update && scene.update(dt);
     updateParts(dt);
@@ -807,6 +810,11 @@ check('desktop never asks', () => needsRotate(500, 900, false) === false);
 check('home button clears a left notch', () => {
   const old = SAFE; SAFE = {t:0, r:0, b:21, l:47}; layoutHud();
   const ok = homeBtn.x - homeBtn.r >= 47; SAFE = old; layoutHud(); return ok;
+});
+
+check('rotating mid-drag drops the piece', () => {
+  const p = {x:50, y:60, hx:5, hy:6}; Shapes.drag = p; down = true; cancelDrag();
+  return !down && !Shapes.drag && p.x === 5 && p.y === 6;
 });
 
 if(location.search.includes('selftest')) addEventListener('load', async () => {
