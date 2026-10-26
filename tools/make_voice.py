@@ -14,6 +14,13 @@ PHRASES = [
     "Oval! Well done!", "Diamond! Well done!", "Rectangle! Well done!",
     "Hooray Elaina!", "Great job!", "You did it!", "Wow, super!", "Yay Elaina!", "Good job Elaina!", "Amazing!",
     "Hooray!",
+    "Christmas tree!", "Birthday cake!", "Feed the animals!", "Painting!", "Peekaboo!", "Count the apples!",
+    "Merry Christmas Elaina!", "Happy Birthday Elaina",
+    "One", "Two", "Three", "Four", "Five",
+    "One apple!", "Two apples!", "Three apples!", "Four apples!", "Five apples!",
+    "Grass", "Apple", "Corn", "Carrot", "Fish", "Bone", "Yum yum!", "Rainbow!", "All clean!",
+    "Peekaboo! It's a cow!", "Peekaboo! It's a pig!", "Peekaboo! It's a duck!",
+    "Peekaboo! It's a sheep!", "Peekaboo! It's a cat!", "Peekaboo! It's a dog!",
 ]
 BEGIN, END = "/* VOICE-CLIPS:BEGIN */", "/* VOICE-CLIPS:END */"
 
